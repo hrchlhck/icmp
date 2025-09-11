@@ -2,8 +2,8 @@
 #define ICMP_H
 #define PAYLOAD_SIZE 49
 
-typedef uint16_t;
-typedef struct icmphdr;
+typedef uint16_t myuint16_t;
+struct icmphdr;
 
 void show_payload(char* payload);
 char* create_payload();

@@ -5,6 +5,9 @@
 #include <netinet/in.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/ip.h>
+#include <stdint.h>
+#include <arpa/inet.h>
+
 
 #include "icmp.h"
 
@@ -36,6 +39,7 @@ char* create_payload() {
 }
 
 // Checksum IP (RFC 1071)
+/*
 uint16_t checksum(struct icmphdr* buf, int len) {
     uint32_t sum = 0;
     uint16_t* pacote = (uint16_t *) buf;
@@ -47,6 +51,32 @@ uint16_t checksum(struct icmphdr* buf, int len) {
 
     if (len > 0) {
         sum += *((char*)pacote);
+    }
+
+    while (sum >> 16) {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+
+    return (uint16_t)(~sum);
+}
+*/
+uint16_t checksum(struct icmphdr* buf, int len) {
+
+    // fazendo um ponteiro nao mutavel e transforma em &[u8]
+    const uint8_t* pacote = (const uint8_t*)buf;
+    uint32_t sum = 0;
+    int i;  
+
+    for (i = 0; i < len - 1; i += 2) {
+//                     bitwise shift left
+//                         0xA8 vira 0xA800
+//                0xA800 | 0xA dai vira 0xA8A9
+        uint16_t word = (pacote[i] << 8) | pacote[i+1];
+        sum += word;
+    }
+
+    if (len % 2 == 1) {
+        sum += pacote[len - 1];
     }
 
     while (sum >> 16) {
@@ -73,7 +103,7 @@ struct icmphdr* create_echo_request(uint16_t id, uint16_t seq) {
 void show_icmp(struct icmphdr* p) {
     int id = ntohs(p->un.echo.id);
     int seq = ntohs(p->un.echo.sequence);
-    printf("Type: %i\tCode: %i\tChecksum: 0x%x\tID: %i\tSeq: %i\n", p->type, p->code, p->checksum, id, seq);
+    printf("Type: %i\tCode: %i\tChecksum: 0x%x\tID: %i\tSeq: %i\n", p->type, p->code, ntohs(p->checksum), ntohs(id), ntohs(seq));
     char* payload = (char*)p + sizeof(struct icmphdr);
 
     printf("Payload:\n");
@@ -98,7 +128,8 @@ struct icmphdr* add_payload(struct icmphdr* p) {
 
     struct icmphdr* ret_pkt = (struct icmphdr*) new_packet;
     ret_pkt->checksum = 0;
-    ret_pkt->checksum = checksum(ret_pkt, header_size + payload_size);
-
+    ret_pkt->checksum = htons(checksum(ret_pkt, header_size + payload_size));
+    //ret_pkt->checksum = checksum(ret_pkt, header_size + payload_size);
+    //ret_pkt->checksum = htons(0x1234);
     return ret_pkt;
 }
