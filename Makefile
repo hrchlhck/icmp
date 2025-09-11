@@ -8,4 +8,4 @@ build:
 	gcc -o $(BIN) -I$(INCLUDE) $(wildcard *.c) $(SRC)
 
 run:
-	./$(BIN) 172.17.0.3 172.17.0.4
+	./$(BIN) 192.168.50.113 1.1.1.1
